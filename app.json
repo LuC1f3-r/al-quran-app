@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Al Quran Prototype",
+    "slug": "al-quran-prototype",
+    "scheme": "alquranprototype",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "android": {
+      "package": "com.prototype.alquran"
+    },
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
