@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COLORS, SPACING } from '../constants/theme';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const scale = (size: number) => Math.round((SCREEN_W / 390) * size); // 390 = iPhone 14 base width
 
 type TopHeaderProps = {
   title: string;
@@ -11,18 +15,20 @@ type TopHeaderProps = {
 };
 
 export function TopHeader({ title, onBackPress, rightNode }: TopHeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { paddingTop: insets.top + scale(12) }]}>
       <View style={styles.row}>
         {onBackPress ? (
           <Pressable style={styles.iconButton} onPress={onBackPress}>
-            <Ionicons name="chevron-back" size={28} color={COLORS.white} />
+            <Ionicons name="chevron-back" size={scale(30)} color={COLORS.white} />
           </Pressable>
         ) : (
           <View style={styles.iconPlaceholder} />
         )}
 
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { fontSize: scale(20) }]}>{title}</Text>
 
         <View style={styles.rightContainer}>{rightNode ?? <View style={styles.iconPlaceholder} />}</View>
       </View>
@@ -33,36 +39,34 @@ export function TopHeader({ title, onBackPress, rightNode }: TopHeaderProps) {
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: COLORS.primaryGreenSoft,
-    paddingTop: 48,
     paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.md,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingBottom: scale(24),
+    borderBottomLeftRadius: scale(50),
+    borderBottomRightRadius: scale(50),
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: scale(36),
+    height: scale(36),
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconPlaceholder: {
-    width: 36,
-    height: 36,
+    width: scale(36),
+    height: scale(36),
   },
   title: {
     flex: 1,
     color: COLORS.white,
-    fontSize: 20,
-    fontWeight: '700',
-    marginLeft: SPACING.sm,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   rightContainer: {
-    minWidth: 36,
-    alignItems: 'flex-end',
+    minWidth: scale(40),
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
 });

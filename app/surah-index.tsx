@@ -71,7 +71,7 @@ export default function SurahIndexScreen() {
       <TopHeader
         title="Surah Index"
         onBackPress={() => router.back()}
-        rightNode={<Ionicons name="search" size={28} color={COLORS.white} />}
+        rightNode={<Ionicons name="search" size={34} color={COLORS.white} />}
       />
 
       <Pressable style={styles.reciterCard} onPress={() => setReciterModalVisible(true)}>
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   reciterCard: {
     marginHorizontal: SPACING.md,
-    marginTop: -12,
+    marginTop: 10,
     backgroundColor: '#0A7A38',
     borderRadius: RADIUS.xl,
     padding: SPACING.md,

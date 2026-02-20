@@ -116,11 +116,10 @@ export default function JuzzIndexScreen() {
                     return;
                   }
                   router.push({
-                    pathname: '/reader',
+                    pathname: '/quran-page',
                     params: {
-                      page: String(selectedStartPage),
+                      pageNumber: String(selectedStartPage),
                       surahName: `Juzz ${selectedJuzz.id} - ${selectedJuzz.name}`,
-                      surahNumber: String(selectedJuzz.id),
                     },
                   });
                   setSelectedJuzz(null);
