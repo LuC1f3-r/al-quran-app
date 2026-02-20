@@ -179,24 +179,6 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* Quick actions grid */}
-        <View style={styles.actionsGrid}>
-          {quickActions.map((item) => (
-            <Pressable
-              key={item.key}
-              style={[styles.actionTile, { backgroundColor: item.bg }]}
-              onPress={() => item.route && router.push(item.route)}
-            >
-              <Image
-                source={item.image}
-                style={styles.actionImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.actionText}>{item.title}</Text>
-            </Pressable>
-          ))}
-        </View>
-
         {/* Last Read card */}
         <Pressable
           style={styles.lastReadCard}
@@ -231,11 +213,29 @@ export default function HomeScreen() {
           <View style={styles.lastReadRight}>
             <Image
               source={require('../assets/img/quran.png')}
-              style={{ width: 150, height: 150 }}
+              style={{ width: 100, height: 100 }}
               resizeMode="contain"
             />
           </View>
         </Pressable>
+
+        {/* Quick actions grid */}
+        <View style={styles.actionsGrid}>
+          {quickActions.map((item) => (
+            <Pressable
+              key={item.key}
+              style={[styles.actionTile, { backgroundColor: item.bg }]}
+              onPress={() => item.route && router.push(item.route)}
+            >
+              <Image
+                source={item.image}
+                style={styles.actionImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.actionText}>{item.title}</Text>
+            </Pressable>
+          ))}
+        </View>
 
         {/* Prayer tracker */}
         <Pressable style={styles.prayerTrackerBtn} onPress={() => router.push('/prayer-times')}>
