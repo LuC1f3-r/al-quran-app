@@ -96,8 +96,9 @@ export default function PrayerTimesScreen() {
       <View style={styles.headerHeroArea}>
         <Image
           source={getCurrentPrayerGif(new Date())}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '120%', height: '135%' }}
           resizeMode="cover"
+          fadeDuration={0}
         />
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
 
@@ -136,8 +137,10 @@ export default function PrayerTimesScreen() {
       </View>
 
       <View style={styles.locationRow}>
-        <Ionicons name="location-outline" size={16} color="#6B7280" />
-        <Text style={styles.locationText}>{locationName}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10 }}>
+          <Ionicons name="location-outline" size={20} color="#6B7280" />
+          <Text style={[styles.locationText, { fontSize: 16, marginLeft: 6 }]}>{locationName}</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -150,16 +153,18 @@ export default function PrayerTimesScreen() {
           data={prayerList}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          removeClippedSubviews
+          initialNumToRender={7}
           renderItem={({ item }) => {
             const isActive = item.id === currentPrayerId;
 
             return (
               <View style={[styles.prayerRow, isActive && styles.prayerRowActive]}>
                 <View style={[styles.rowLeadingIcon, isActive && styles.rowLeadingIconActive]}>
-                  <Image
-                    source={PRAYER_GIFS[item.id] || PRAYER_GIFS['dhuhr']}
-                    style={{ width: 38, height: 38, borderRadius: RADIUS.md }}
-                    resizeMode="cover"
+                  <MaterialCommunityIcons
+                    name={isActive ? 'white-balance-sunny' : 'weather-sunset-up'}
+                    size={20}
+                    color={isActive ? COLORS.white : '#6B7280'}
                   />
                 </View>
 
@@ -295,6 +300,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
   },
   locationText: {

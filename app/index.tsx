@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { PRAYER_TIMES } from '../data/prayers';
@@ -26,14 +27,15 @@ const prayerShortcutKeys = [
 ];
 
 const quickActions = [
-  { key: 'quran', title: 'Quran', icon: 'book-open-page-variant' as const, route: '/surah-index' as const },
-  { key: 'juzz', title: 'Juzz', icon: 'book-open-variant' as const, route: '/juzz-index' as const },
-  { key: 'goto', title: 'Go To', icon: 'book-multiple' as const, route: '/go-to-page' as const },
-  { key: 'bookmarks', title: 'Bookmarks', icon: 'bookmark' as const, route: '/bookmarks' as const },
-  { key: 'dua', title: 'Dua', icon: 'hands-pray' as const, route: null },
-  { key: 'hadith', title: 'Hadith', icon: 'script-text' as const, route: null },
-  { key: 'tasbeeh', title: 'Tasbeeh', icon: 'counter' as const, route: null },
-  { key: 'salah', title: 'Salah', icon: 'account-group' as const, route: null },
+  { key: 'quran', title: 'Quran', image: require('../assets/img/quran-2.png'), route: '/surah-index' as const, bg: '#E8F5E9' },
+  { key: 'juzz', title: 'Juzz', image: require('../assets/img/juzz.png'), route: '/juzz-index' as const, bg: '#FFF3E0' },
+  { key: 'goto', title: 'Go To', image: require('../assets/img/search.png'), route: '/go-to-page' as const, bg: '#E3F2FD' },
+  { key: 'bookmarks', title: 'Bookmarks', image: require('../assets/img/bookmark.png'), route: '/bookmarks' as const, bg: '#FCE4EC' },
+  { key: 'dua', title: 'Dua', image: require('../assets/img/dua.png'), route: null, bg: '#F3E5F5' },
+  { key: 'hadith', title: 'Hadith', image: require('../assets/img/hadith.png'), route: null, bg: '#E0F7FA' },
+  { key: 'tasbeeh', title: 'Tasbeeh', image: require('../assets/img/tasbih.png'), route: null, bg: '#FFF8E1' },
+  { key: 'salah', title: 'Salah', image: require('../assets/img/salat.png'), route: null, bg: '#E8EAF6' },
+  { key: 'compass', title: 'Compass', image: require('../assets/img/compass.png'), route: null, bg: '#E0F2F1' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -114,8 +116,9 @@ export default function HomeScreen() {
       >
         <Image
           source={getCurrentPrayerGif(now)}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '120%', height: '130%' }}
           resizeMode="cover"
+          fadeDuration={0}
         />
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
 
@@ -177,21 +180,21 @@ export default function HomeScreen() {
         ) : null}
 
         {/* Quick actions grid */}
-        <View style={styles.quickActionsCard}>
-          <View style={styles.actionsGrid}>
-            {quickActions.map((item) => (
-              <Pressable
-                key={item.key}
-                style={styles.actionTile}
-                onPress={() => item.route && router.push(item.route)}
-              >
-                <View style={styles.actionIconWrap}>
-                  <MaterialCommunityIcons name={item.icon} size={26} color={COLORS.primaryGreen} />
-                </View>
-                <Text style={styles.actionText}>{item.title}</Text>
-              </Pressable>
-            ))}
-          </View>
+        <View style={styles.actionsGrid}>
+          {quickActions.map((item) => (
+            <Pressable
+              key={item.key}
+              style={[styles.actionTile, { backgroundColor: item.bg }]}
+              onPress={() => item.route && router.push(item.route)}
+            >
+              <Image
+                source={item.image}
+                style={styles.actionImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.actionText}>{item.title}</Text>
+            </Pressable>
+          ))}
         </View>
 
         {/* Last Read card */}
@@ -208,6 +211,12 @@ export default function HomeScreen() {
             })
           }
         >
+          <LinearGradient
+            colors={['#0F7B3F', '#1AAF5D', '#34D375']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
           <View style={styles.lastReadLeft}>
             <Text style={styles.lastReadLabel}>Last Read</Text>
             <Text style={styles.lastReadSurah}>{lastReading.surahName ?? 'الفاتحة'}</Text>
@@ -215,12 +224,16 @@ export default function HomeScreen() {
 
             <View style={styles.continueButton}>
               <Text style={styles.continueText}>Continue</Text>
-              <MaterialCommunityIcons name="arrow-right" size={16} color="#0E6A44" />
+              <MaterialCommunityIcons name="arrow-right" size={18} color="#0E6A44" />
             </View>
           </View>
 
           <View style={styles.lastReadRight}>
-            <MaterialCommunityIcons name="book-open-page-variant" size={64} color="#D5F5E5" />
+            <Image
+              source={require('../assets/img/quran.png')}
+              style={{ width: 150, height: 150 }}
+              resizeMode="contain"
+            />
           </View>
         </Pressable>
 
@@ -327,38 +340,37 @@ const styles = StyleSheet.create({
   },
   locationText: { color: '#6B7280', fontSize: 12, fontWeight: '600' },
 
-  quickActionsCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.md,
-    shadowColor: '#001122',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
   actionsGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
-    justifyContent: 'space-between', rowGap: SPACING.lg,
+    justifyContent: 'space-between', rowGap: SPACING.sm,
   },
-  actionTile: { width: '23%', alignItems: 'center', gap: 8 },
-  actionIconWrap: {
-    width: 52, height: 52, borderRadius: 16,
-    backgroundColor: '#EFF6F0',
-    alignItems: 'center', justifyContent: 'center',
+  actionTile: {
+    width: '48%',
+    borderRadius: RADIUS.xl,
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  actionText: { color: '#374151', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  actionImage: {
+    width: 56, height: 56,
+  },
+  actionText: { color: '#374151', fontSize: 14, fontWeight: '700', textAlign: 'center' },
 
   lastReadCard: {
     borderRadius: RADIUS.xl,
-    backgroundColor: '#1C9B5E',
     flexDirection: 'row',
     overflow: 'hidden',
-    shadowColor: '#0D5A30',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowColor: '#064E2B',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+    padding: SPACING.sm,
   },
   lastReadLeft: { flex: 1, padding: SPACING.lg },
   lastReadLabel: { color: '#C8F5DA', fontSize: 13, fontWeight: '600' },
@@ -367,7 +379,7 @@ const styles = StyleSheet.create({
   continueButton: {
     marginTop: SPACING.md,
     alignSelf: 'flex-start',
-    backgroundColor: '#E9FFF3',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.md,
     paddingVertical: 8,
@@ -377,7 +389,7 @@ const styles = StyleSheet.create({
   },
   continueText: { color: '#0E6A44', fontSize: 14, fontWeight: '700' },
   lastReadRight: {
-    width: 110, alignItems: 'center', justifyContent: 'center', backgroundColor: '#28B06A',
+    width: 120, alignItems: 'center', justifyContent: 'center', marginRight: SPACING.sm,
   },
 
   prayerTrackerBtn: {
