@@ -25,6 +25,7 @@ export type Settings = {
   prayerAlertsEnabled: boolean;
   vibrationEnabled: boolean;
   adhanPreviewEnabled: boolean;
+  gender: 'male' | 'female';
 };
 
 type MiniPlayerState = {
@@ -58,6 +59,7 @@ const defaultSettings: Settings = {
   prayerAlertsEnabled: true,
   vibrationEnabled: true,
   adhanPreviewEnabled: true,
+  gender: 'male',
 };
 
 export const useAppStore = create<AppState>()(

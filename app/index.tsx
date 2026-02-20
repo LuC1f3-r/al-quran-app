@@ -46,6 +46,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [now, setNow] = useState(new Date());
   const lastReading = useAppStore((s) => s.lastReading);
+  const gender = useAppStore((s) => s.settings.gender);
 
   /* ── Live prayer times ── */
   const [livePrayers, setLivePrayers] = useState<ReturnType<typeof timingsToList> | null>(null);
@@ -125,14 +126,21 @@ export default function HomeScreen() {
         {/* header row */}
         <View style={styles.heroHeaderRow}>
           <View>
-            <Text style={styles.greeting}>Assalamu alaikum</Text>
+            <Text style={styles.greeting}>Assalamu alaikum,</Text>
             <Text style={styles.userName}>Usman Ghani</Text>
           </View>
           <Pressable
             onPress={() => router.push('/profile')}
             style={[styles.avatarBubble, { backgroundColor: theme.heroBackgroundAlt }]}
           >
-            <MaterialCommunityIcons name="account" size={20} color={COLORS.white} />
+            <Image
+              source={gender === 'female'
+                ? require('../assets/img/woman.png')
+                : require('../assets/img/man.png')
+              }
+              style={{ width: 32, height: 32, borderRadius: 16 }}
+              resizeMode="cover"
+            />
           </Pressable>
         </View>
 
@@ -287,7 +295,7 @@ const styles = StyleSheet.create({
   greeting: { color: '#D7E8FA', fontSize: 14, fontWeight: '500', letterSpacing: 0.3 },
   userName: { marginTop: 2, color: COLORS.white, fontSize: 22, fontWeight: '800' },
   avatarBubble: {
-    width: 40, height: 40, borderRadius: 999,
+    width: 50, height: 50, borderRadius: 999,
     alignItems: 'center', justifyContent: 'center',
   },
 

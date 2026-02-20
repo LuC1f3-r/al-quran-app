@@ -82,7 +82,7 @@ export const getTimeOfDayTheme = (date: Date): TimeOfDayTheme => {
     return {
       heroBackground: '#0B1D3A',
       heroBackgroundAlt: '#1A3A5C',
-      accentCircle: '#2E5E8E',
+      accentCircle: '#212b35ff',
       starColor: '#BFDFFF',
       label: 'dawn',
     };
