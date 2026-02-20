@@ -13,6 +13,8 @@ import { useRouter } from 'expo-router';
 import { TopHeader } from '../components/TopHeader';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { JUZZ_LIST, type Juzz } from '../data/juzz';
+import { useAppStore } from '../store/useAppStore';
+import { getQuranFontFamily } from '../utils/quranFont';
 
 type JuzzStartPoint = 'start' | 'quarter' | 'half' | 'third-quarter';
 
@@ -27,6 +29,8 @@ export default function JuzzIndexScreen() {
   const router = useRouter();
   const [selectedJuzz, setSelectedJuzz] = useState<Juzz | null>(null);
   const [startPoint, setStartPoint] = useState<JuzzStartPoint>('start');
+  const quranScript = useAppStore((state) => state.settings.quranScript);
+  const quranFont = getQuranFontFamily(quranScript);
 
   const selectedStartPage = useMemo(() => {
     if (!selectedJuzz) {
@@ -72,7 +76,7 @@ export default function JuzzIndexScreen() {
               </Text>
               <Text style={styles.juzzPage}>Page # {item.startPage}</Text>
             </View>
-            <Text style={styles.juzzArabic}>{item.arabic}</Text>
+            <Text style={[styles.juzzArabic, { fontFamily: quranFont }]}>{item.arabic}</Text>
           </Pressable>
         )}
       />

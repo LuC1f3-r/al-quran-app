@@ -18,6 +18,7 @@ import { SURAHS } from '../data/surahs';
 import { useAppStore } from '../store/useAppStore';
 import { fetchChapters, RECITERS, type Chapter } from '../services/quranApi';
 import { useApiData } from '../hooks/useApiData';
+import { getQuranFontFamily } from '../utils/quranFont';
 
 export default function SurahIndexScreen() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function SurahIndexScreen() {
   const playTrack = useAppStore((state) => state.playTrack);
   const [reciterModalVisible, setReciterModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const quranScript = useAppStore((state) => state.settings.quranScript);
+  const quranFont = getQuranFontFamily(quranScript);
 
   /* Fetch live chapters */
   const { data: chapters, loading } = useApiData(() => fetchChapters(), []);
@@ -125,7 +128,7 @@ export default function SurahIndexScreen() {
                 </View>
               </View>
 
-              <Text style={styles.surahArabic}>{item.arabicName}</Text>
+              <Text style={[styles.surahArabic, { fontFamily: quranFont }]}>{item.arabicName}</Text>
 
               <View style={styles.rowActions}>
                 <PillButton

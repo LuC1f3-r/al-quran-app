@@ -260,8 +260,8 @@ export default function ProfileScreen() {
                         iconColor="#6B7280"
                         iconBg="#F3F4F6"
                         title="About"
-                        subtitle="Version 1.0.0"
-                        onPress={() => Alert.alert('Al-Quran App', 'Version 1.0.0\nBuilt with love ❤️')}
+                        subtitle="Version 0.1.0"
+                        onPress={() => Alert.alert('Al-Quran App', 'Version 0.1.0\nBuilt with love ❤️')}
                     />
                 </View>
 

@@ -3,7 +3,7 @@
     "name": "Al Quran Prototype",
     "slug": "al-quran-prototype",
     "scheme": "alquranprototype",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "plugins": [

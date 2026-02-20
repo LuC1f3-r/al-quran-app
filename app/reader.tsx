@@ -14,6 +14,7 @@ import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { fetchChapters, fetchVerses, type Chapter, type Verse } from '../services/quranApi';
 import { playAyah, pauseAudio, stopAudio, subscribe, getState as getAudioState } from '../services/audioPlayer';
+import { getQuranFontFamily } from '../utils/quranFont';
 
 type ReaderParams = {
   page?: string;
@@ -32,6 +33,7 @@ export default function ReaderScreen() {
   const surahName = params.surahName ?? 'Al-Fatihah';
   const reciter = useAppStore((state) => state.settings.reciter);
   const quranScript = useAppStore((state) => state.settings.quranScript);
+  const quranFont = getQuranFontFamily(quranScript);
   const addBookmark = useAppStore((state) => state.addBookmark);
   const setLastReading = useAppStore((state) => state.setLastReading);
 
@@ -182,7 +184,7 @@ export default function ReaderScreen() {
               {/* Bismillah */}
               {meta?.bismillahPre && (
                 <View style={styles.bismillahStrip}>
-                  <Text style={styles.bismillahText}>بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</Text>
+                  <Text style={[styles.bismillahText, { fontFamily: quranFont }]}>بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</Text>
                 </View>
               )}
             </>
@@ -231,7 +233,7 @@ export default function ReaderScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.ayahArabic}>{item.arabicText}</Text>
+                <Text style={[styles.ayahArabic, { fontFamily: quranFont }]}>{item.arabicText}</Text>
                 <Text style={styles.ayahTranslation}>{item.translation}</Text>
               </View>
             );
