@@ -34,7 +34,7 @@ const quickActions = [
   { key: 'dua', title: 'Dua', image: require('../assets/img/dua.png'), route: null, bg: '#F3E5F5' },
   { key: 'hadith', title: 'Hadith', image: require('../assets/img/hadith.png'), route: null, bg: '#E0F7FA' },
   { key: 'tasbeeh', title: 'Tasbeeh', image: require('../assets/img/tasbih.png'), route: null, bg: '#FFF8E1' },
-  { key: 'salah', title: 'Salah', image: require('../assets/img/salat.png'), route: null, bg: '#E8EAF6' },
+  { key: 'salah', title: 'Salah', image: require('../assets/img/shalat.png'), route: null, bg: '#E8EAF6' },
   { key: 'compass', title: 'Compass', image: require('../assets/img/compass.png'), route: null, bg: '#E0F2F1' },
 ];
 
@@ -342,24 +342,21 @@ const styles = StyleSheet.create({
 
   actionsGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
-    justifyContent: 'space-between', rowGap: SPACING.sm,
+    justifyContent: 'space-around', rowGap: 12,
   },
   actionTile: {
-    width: '48%',
-    borderRadius: RADIUS.xl,
-    paddingVertical: SPACING.lg,
+    width: '40%',
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    justifyContent: 'center',
+    gap: 10,
   },
   actionImage: {
-    width: 56, height: 56,
+    width: 72, height: 72,
   },
-  actionText: { color: '#374151', fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  actionText: { color: '#374151', fontSize: 15, fontWeight: '800', textAlign: 'center' },
 
   lastReadCard: {
     borderRadius: RADIUS.xl,
