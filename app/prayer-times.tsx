@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,7 @@ import { useAppStore } from '../store/useAppStore';
 import { getCurrentPrayerId, toDisplayTime } from '../utils/prayer';
 import { fetchPrayerTimesByCoords, timingsToList, type PrayerTimesResponse } from '../services/prayerApi';
 import { PRAYER_GIFS, getCurrentPrayerGif } from '../utils/prayerAssets';
+import { playAdhan, stopAdhan, subscribeAdhan } from '../services/adhanPlayer';
 
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -34,7 +35,13 @@ export default function PrayerTimesScreen() {
 
   const [selectedDateIndex, setSelectedDateIndex] = useState(3); // center
   const [selectedPrayerName, setSelectedPrayerName] = useState('');
+  const [selectedPrayerId, setSelectedPrayerId] = useState('');
   const [settingsVisible, setSettingsVisible] = useState(false);
+
+  /* ── Adhan player state ── */
+  const selectedAdhan = useAppStore((s) => s.settings.selectedAdhan);
+  const adhanEnabledPrayers = useAppStore((s) => s.settings.adhanEnabledPrayers);
+  const [adhanPlayingFor, setAdhanPlayingFor] = useState<string | null>(null);
 
   /* ── Live prayer times ── */
   const [livePrayers, setLivePrayers] = useState<ReturnType<typeof timingsToList> | null>(null);
@@ -77,6 +84,25 @@ export default function PrayerTimesScreen() {
     return () => { cancelled = true; };
   }, []);
 
+  /* ── Subscribe to adhan playback state ── */
+  useEffect(() => {
+    const unsubscribe = subscribeAdhan((s) => {
+      setAdhanPlayingFor(s.isPlaying ? s.activePrayerId : null);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleAdhanPress = useCallback(
+    (prayerId: string) => {
+      if (adhanPlayingFor === prayerId) {
+        stopAdhan();
+      } else {
+        playAdhan(selectedAdhan, prayerId);
+      }
+    },
+    [adhanPlayingFor, selectedAdhan],
+  );
+
   const prayerList = livePrayers ?? PRAYER_TIMES;
   const currentPrayerId = useMemo(() => getCurrentPrayerId(prayerList, new Date()), [prayerList]);
   const weekDays = useMemo(() => buildWeekDays(new Date()), []);
@@ -104,12 +130,12 @@ export default function PrayerTimesScreen() {
 
         <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} style={styles.topIconButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+            <Ionicons name="arrow-back" size={28} color={COLORS.white} />
           </Pressable>
 
           <Text style={styles.topTitle}>Prayer Times</Text>
 
-          <View style={styles.topIconButton} />
+          <View style={{ width: 34, height: 34 }} />
         </View>
 
         <View style={styles.dateCard}>
@@ -157,6 +183,8 @@ export default function PrayerTimesScreen() {
           initialNumToRender={7}
           renderItem={({ item }) => {
             const isActive = item.id === currentPrayerId;
+            const isAdhanPlaying = adhanPlayingFor === item.id;
+            const isAdhanEnabled = adhanEnabledPrayers[item.id] !== false;
 
             return (
               <View style={[styles.prayerRow, isActive && styles.prayerRowActive]}>
@@ -172,17 +200,35 @@ export default function PrayerTimesScreen() {
 
                 <View style={styles.rightWrap}>
                   <Text style={[styles.prayerTime, isActive && styles.prayerTimeActive]}>{toDisplayTime(item.time24)}</Text>
-                  <Pressable style={styles.soundBtn}>
+                  <Pressable
+                    style={styles.soundBtn}
+                    onPress={() => handleAdhanPress(item.id)}
+                  >
                     <MaterialCommunityIcons
-                      name="volume-high"
+                      name={
+                        !isAdhanEnabled
+                          ? 'volume-off'
+                          : isAdhanPlaying
+                            ? 'stop-circle-outline'
+                            : 'volume-high'
+                      }
                       size={20}
-                      color={isActive ? '#E9FFF3' : '#50B224'}
+                      color={
+                        !isAdhanEnabled
+                          ? '#9CA3AF'
+                          : isActive
+                            ? '#E9FFF3'
+                            : isAdhanPlaying
+                              ? '#E74C3C'
+                              : '#50B224'
+                      }
                     />
                   </Pressable>
                   <Pressable
                     style={styles.soundBtn}
                     onPress={() => {
                       setSelectedPrayerName(item.name);
+                      setSelectedPrayerId(item.id);
                       setSettingsVisible(true);
                     }}
                   >
@@ -198,6 +244,7 @@ export default function PrayerTimesScreen() {
       <PrayerSettingsModal
         visible={settingsVisible}
         prayerName={selectedPrayerName}
+        prayerId={selectedPrayerId}
         onClose={() => setSettingsVisible(false)}
       />
     </View>
@@ -225,8 +272,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   topIconButton: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',

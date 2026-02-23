@@ -25,6 +25,10 @@ export type Settings = {
   prayerAlertsEnabled: boolean;
   vibrationEnabled: boolean;
   adhanPreviewEnabled: boolean;
+  /** Selected muezzin / adhan style ID (e.g. 'makkah') */
+  selectedAdhan: string;
+  /** Per-prayer adhan sound toggle */
+  adhanEnabledPrayers: Record<string, boolean>;
   gender: 'male' | 'female';
 };
 
@@ -44,6 +48,8 @@ type AppState = {
   setReciter: (reciter: string) => void;
   setQuranScript: (script: QuranScript) => void;
   updatePrayerSetting: (key: 'prayerAlertsEnabled' | 'vibrationEnabled' | 'adhanPreviewEnabled', value: boolean) => void;
+  setSelectedAdhan: (id: string) => void;
+  toggleAdhanForPrayer: (prayerId: string) => void;
   setLastReading: (payload: ReaderPosition) => void;
   addBookmark: (payload: Omit<Bookmark, 'id' | 'createdAt'>) => void;
   removeBookmark: (id: string) => void;
@@ -59,6 +65,15 @@ const defaultSettings: Settings = {
   prayerAlertsEnabled: true,
   vibrationEnabled: true,
   adhanPreviewEnabled: true,
+  selectedAdhan: 'makkah',
+  adhanEnabledPrayers: {
+    fajr: true,
+    sunrise: false,
+    dhuhr: true,
+    asr: true,
+    maghrib: true,
+    isha: true,
+  },
   gender: 'male',
 };
 
@@ -108,6 +123,23 @@ export const useAppStore = create<AppState>()(
           settings: {
             ...state.settings,
             [key]: value,
+          },
+        })),
+      setSelectedAdhan: (id) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            selectedAdhan: id,
+          },
+        })),
+      toggleAdhanForPrayer: (prayerId) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            adhanEnabledPrayers: {
+              ...state.settings.adhanEnabledPrayers,
+              [prayerId]: !state.settings.adhanEnabledPrayers[prayerId],
+            },
           },
         })),
       setLastReading: (payload) => set(() => ({ lastReading: payload })),

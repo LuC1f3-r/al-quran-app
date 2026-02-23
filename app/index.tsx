@@ -35,7 +35,7 @@ const quickActions = [
   { key: 'hadith', title: 'Hadith', image: require('../assets/img/hadith.png'), route: null, bg: '#E0F7FA' },
   { key: 'tasbeeh', title: 'Tasbeeh', image: require('../assets/img/tasbih.png'), route: null, bg: '#FFF8E1' },
   { key: 'salah', title: 'Salah', image: require('../assets/img/shalat.png'), route: null, bg: '#E8EAF6' },
-  { key: 'compass', title: 'Compass', image: require('../assets/img/compass.png'), route: null, bg: '#E0F2F1' },
+  { key: 'compass', title: 'Compass', image: require('../assets/img/compass.png'), route: '/qibla-compass' as const, bg: '#E0F2F1' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -246,11 +246,11 @@ export default function HomeScreen() {
         </View>
 
         {/* Prayer tracker */}
-        <Pressable style={styles.prayerTrackerBtn} onPress={() => router.push('/prayer-times')}>
+        {/* <Pressable style={styles.prayerTrackerBtn} onPress={() => router.push('/prayer-times')}>
           <MaterialCommunityIcons name="chart-timeline-variant" size={22} color="#1F2937" />
           <Text style={styles.prayerTrackerText}>Prayer Tracker</Text>
           <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
-        </Pressable>
+        </Pressable> */}
       </ScrollView>
     </View>
   );
