@@ -12,6 +12,7 @@ import { getCurrentPrayerId, toDisplayTime } from '../utils/prayer';
 import { fetchPrayerTimesByCoords, timingsToList, type PrayerTimesResponse } from '../services/prayerApi';
 import { PRAYER_GIFS, getCurrentPrayerGif } from '../utils/prayerAssets';
 import { playAdhan, stopAdhan, subscribeAdhan } from '../services/adhanPlayer';
+import { schedulePrayerNotifications, cancelPrayerNotifications } from '../services/notifications';
 
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -41,6 +42,7 @@ export default function PrayerTimesScreen() {
   /* ── Adhan player state ── */
   const selectedAdhan = useAppStore((s) => s.settings.selectedAdhan);
   const adhanEnabledPrayers = useAppStore((s) => s.settings.adhanEnabledPrayers);
+  const prayerAlertsEnabled = useAppStore((s) => s.settings.prayerAlertsEnabled);
   const [adhanPlayingFor, setAdhanPlayingFor] = useState<string | null>(null);
 
   /* ── Live prayer times ── */
@@ -66,6 +68,11 @@ export default function PrayerTimesScreen() {
 
         setLivePrayers(timingsToList(data.timings));
         setPrayerData(data);
+
+        // Schedule notifications if alerts are enabled
+        if (prayerAlertsEnabled) {
+          schedulePrayerNotifications(data.timings).catch(() => { });
+        }
 
         const addresses = await Location.reverseGeocodeAsync({
           latitude: loc.coords.latitude,

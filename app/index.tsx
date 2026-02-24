@@ -11,6 +11,7 @@ import { formatCountdown, getNextPrayer, getTimeOfDayTheme, toDisplayTime } from
 import { useAppStore } from '../store/useAppStore';
 import { fetchPrayerTimesByCoords, timingsToList, type PrayerTimesResponse } from '../services/prayerApi';
 import { PRAYER_GIFS, getCurrentPrayerGif } from '../utils/prayerAssets';
+import { schedulePrayerNotifications } from '../services/notifications';
 
 /* ------------------------------------------------------------------ */
 /*  Static data                                                       */
@@ -66,6 +67,9 @@ export default function HomeScreen() {
 
         setLivePrayers(timingsToList(data.timings));
         setPrayerData(data);
+
+        // Schedule prayer notifications on app launch
+        schedulePrayerNotifications(data.timings).catch(() => { });
 
         // Reverse geocode for location name
         const addresses = await Location.reverseGeocodeAsync({
