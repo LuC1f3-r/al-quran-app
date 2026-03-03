@@ -72,7 +72,8 @@ export default function PrayerTimesScreen() {
 
         // Schedule notifications if alerts are enabled
         if (prayerAlertsEnabled) {
-          schedulePrayerNotifications(data.timings).catch(() => { });
+          const adhanPrayers = useAppStore.getState().settings.adhanEnabledPrayers;
+          schedulePrayerNotifications(data.timings, adhanPrayers).catch(() => { });
         }
 
         const addresses = await Location.reverseGeocodeAsync({

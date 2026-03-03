@@ -10,8 +10,11 @@ import { MiniPlayer } from '../components/MiniPlayer';
 import { SplashScreen } from '../components/SplashScreen';
 import { COLORS } from '../constants/theme';
 import { useAuthStore } from '../store/useAuthStore';
+import { useAdhanNotificationListener } from '../hooks/useAdhanNotificationListener';
 
 export default function RootLayout() {
+  useAdhanNotificationListener();
+
   const [showSplash, setShowSplash] = useState(true);
   const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
   const router = useRouter();

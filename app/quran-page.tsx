@@ -1,30 +1,49 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
     Dimensions,
-    Platform,
     Pressable,
     StyleSheet,
     Text,
     View,
+    type ViewToken,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { WebView } from 'react-native-webview';
-import { Asset } from 'expo-asset';
 
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { useAppStore, type QuranScript } from '../store/useAppStore';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-/* ── PDF asset map ── */
+/* ── Blob store base URL ── */
 
-const PDF_ASSETS: Record<string, number> = {
-    indopak: require('../assets/quran/indo-pak-quran.pdf'),
-    uthmani: require('../assets/quran/uthmani-quran.pdf'),
-    imlaei: require('../assets/quran/uthmani-quran.pdf'),
+const BLOB_BASE =
+    'https://0rzi132lc8qguh0y.public.blob.vercel-storage.com';
+
+const SCRIPT_PATHS: Record<QuranScript, string> = {
+    indopak: 'indopak',
+    uthmani: 'uthmani',
+    imlaei: 'uthmani', // shares uthmani assets
 };
+
+/** Build the remote URL for a given page number and script. */
+function getPageUrl(script: QuranScript, page: number): string {
+    const folder = SCRIPT_PATHS[script];
+    return `${BLOB_BASE}/${folder}/page_${page}.webp`;
+}
+
+/* ── Pre-compute the 604 page data items once ── */
+
+const TOTAL_PAGES = 604;
+const PAGES = Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1);
+
+/* ── Placeholder blurhash (neutral warm parchment tone) ── */
+const PAGE_BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0teleVs';
+
+/* ── Viewability config (kept outside component to avoid re-creation) ── */
+const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 60 };
 
 export default function QuranPageScreen() {
     const router = useRouter();
@@ -34,148 +53,55 @@ export default function QuranPageScreen() {
     }>();
 
     const quranScript = useAppStore((state) => state.settings.quranScript);
-    const initialPage = Math.max(1, Math.min(604, Number(params.pageNumber ?? 1)));
+    const setLastReading = useAppStore((state) => state.setLastReading);
+    const addBookmark = useAppStore((state) => state.addBookmark);
+
+    const initialPage = Math.max(1, Math.min(TOTAL_PAGES, Number(params.pageNumber ?? 1)));
     const surahName = params.surahName ?? '';
+
     const [currentPage, setCurrentPage] = useState(initialPage);
-    const [loading, setLoading] = useState(true);
-    const [pdfUri, setPdfUri] = useState<string | null>(null);
-    const webViewRef = useRef<WebView>(null);
+    const listRef = useRef<FlashListRef<number>>(null);
 
-    /* ── Resolve the PDF asset to a local file URI ── */
-    useEffect(() => {
-        let cancelled = false;
-        setLoading(true);
+    /* ── Compute the image height to fill the available space ── */
+    const topBarH = 90;
+    const bottomBarH = 80;
+    const imageAreaH = SCREEN_H - topBarH - bottomBarH;
 
-        (async () => {
-            try {
-                const assetModule = PDF_ASSETS[quranScript] ?? PDF_ASSETS.uthmani;
-                const asset = Asset.fromModule(assetModule);
-                await asset.downloadAsync();
-                if (!cancelled && asset.localUri) {
-                    setPdfUri(asset.localUri);
-                }
-            } catch (err) {
-                console.warn('Failed to load PDF asset:', err);
+    /* ── Viewable items handler — track which page is on-screen ── */
+    const onViewableItemsChanged = useCallback(
+        ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+            if (viewableItems.length > 0) {
+                const page = viewableItems[0].item as number;
+                setCurrentPage(page);
+                setLastReading({
+                    page,
+                    surahName: surahName || undefined,
+                });
             }
-        })();
+        },
+        [surahName, setLastReading],
+    );
 
-        return () => { cancelled = true; };
-    }, [quranScript]);
-
-    const goToPrevPage = () => {
-        if (currentPage > 1) {
-            const newPage = currentPage - 1;
-            setCurrentPage(newPage);
-            webViewRef.current?.injectJavaScript(`goToPage(${newPage}); true;`);
-        }
-    };
-
-    const goToNextPage = () => {
-        if (currentPage < 604) {
-            const newPage = currentPage + 1;
-            setCurrentPage(newPage);
-            webViewRef.current?.injectJavaScript(`goToPage(${newPage}); true;`);
-        }
-    };
-
-    /* ── HTML that uses pdf.js to render a single page ── */
-    const getPdfViewerHtml = (fileUri: string, page: number) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #FBF8F1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    canvas {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-    .loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #6B7280;
-      font-family: system-ui, sans-serif;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div class="loading" id="loadingMsg">Rendering page…</div>
-  <canvas id="pdfCanvas"></canvas>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    let pdfDoc = null;
-    const canvas = document.getElementById('pdfCanvas');
-    const ctx = canvas.getContext('2d');
-    const loadingMsg = document.getElementById('loadingMsg');
-
-    async function renderPage(num) {
-      if (!pdfDoc) return;
-      try {
-        const page = await pdfDoc.getPage(num);
-        const dpr = window.devicePixelRatio || 2;
-        const viewport = page.getViewport({ scale: 1 });
-        
-        // Scale to fit screen width while maintaining aspect ratio
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-        const scaleW = screenWidth / viewport.width;
-        const scaleH = screenHeight / viewport.height;
-        const scale = Math.min(scaleW, scaleH) * dpr;
-        
-        const scaledViewport = page.getViewport({ scale });
-        canvas.width = scaledViewport.width;
-        canvas.height = scaledViewport.height;
-        canvas.style.width = (scaledViewport.width / dpr) + 'px';
-        canvas.style.height = (scaledViewport.height / dpr) + 'px';
-
-        await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-        loadingMsg.style.display = 'none';
-        canvas.style.display = 'block';
-        
-        // Notify React Native that loading is complete
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'loaded' }));
-      } catch (err) {
-        loadingMsg.textContent = 'Error rendering page';
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: err.message }));
-      }
-    }
-
-    function goToPage(num) {
-      loadingMsg.style.display = 'block';
-      loadingMsg.textContent = 'Rendering page…';
-      canvas.style.display = 'none';
-      renderPage(num);
-    }
-
-    // Load the PDF
-    (async () => {
-      try {
-        pdfDoc = await pdfjsLib.getDocument('${fileUri}').promise;
-        renderPage(${page});
-      } catch (err) {
-        loadingMsg.textContent = 'Failed to load PDF';
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: err.message }));
-      }
-    })();
-  </script>
-</body>
-</html>
-`;
+    /* ── Render a single page ── */
+    const renderPage = useCallback(
+        ({ item: page }: { item: number }) => {
+            const uri = getPageUrl(quranScript, page);
+            return (
+                <View style={{ width: SCREEN_W, height: imageAreaH }}>
+                    <Image
+                        source={{ uri }}
+                        style={styles.pageImage}
+                        contentFit="contain"
+                        placeholder={{ blurhash: PAGE_BLURHASH }}
+                        transition={200}
+                        cachePolicy="disk"
+                        recyclingKey={`page-${page}`}
+                    />
+                </View>
+            );
+        },
+        [quranScript, imageAreaH],
+    );
 
     const scriptLabel = quranScript === 'indopak' ? 'Indo-Pak' : 'Uthmani';
 
@@ -183,78 +109,61 @@ export default function QuranPageScreen() {
         <View style={styles.container}>
             {/* ── Top bar ── */}
             <View style={styles.topBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                <Pressable onPress={() => router.back()} style={styles.iconBtn}>
                     <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
                 </Pressable>
+
                 <View style={styles.topCenter}>
                     <Text style={styles.topTitle}>
                         {surahName ? surahName : 'Quran'}
                     </Text>
                     <Text style={styles.topSub}>
-                        Page {currentPage} of 604 · {scriptLabel}
+                        Page {currentPage} of {TOTAL_PAGES} · {scriptLabel}
                     </Text>
                 </View>
-                <View style={{ width: 34 }} />
+
+                <Pressable
+                    style={styles.iconBtn}
+                    onPress={() =>
+                        addBookmark({
+                            page: currentPage,
+                            surahName: surahName || `Page ${currentPage}`,
+                        })
+                    }
+                >
+                    <MaterialCommunityIcons name="bookmark-plus-outline" size={24} color="#111827" />
+                </Pressable>
             </View>
 
-            {/* ── PDF viewer ── */}
-            <View style={styles.pageContainer}>
-                {(loading || !pdfUri) && (
-                    <View style={styles.loadingOverlay}>
-                        <ActivityIndicator size="large" color={COLORS.primaryGreenSoft} />
-                        <Text style={styles.loadingText}>
-                            Loading {scriptLabel} Mushaf…
-                        </Text>
-                    </View>
-                )}
-                {pdfUri && (
-                    <WebView
-                        ref={webViewRef}
-                        originWhitelist={['*']}
-                        source={{ html: getPdfViewerHtml(pdfUri, currentPage) }}
-                        style={styles.webView}
-                        javaScriptEnabled
-                        domStorageEnabled
-                        allowFileAccess
-                        allowFileAccessFromFileURLs
-                        allowUniversalAccessFromFileURLs
-                        mixedContentMode="always"
-                        onMessage={(event) => {
-                            try {
-                                const data = JSON.parse(event.nativeEvent.data);
-                                if (data.type === 'loaded') {
-                                    setLoading(false);
-                                }
-                            } catch { }
-                        }}
-                        onError={() => setLoading(false)}
-                    />
-                )}
+            {/* ── Swipeable page list ── */}
+            <View style={styles.listContainer}>
+                <FlashList
+                    ref={listRef}
+                    data={PAGES}
+                    renderItem={renderPage}
+                    keyExtractor={(page) => `${quranScript}-${page}`}
+                    drawDistance={SCREEN_W}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    initialScrollIndex={initialPage - 1}
+                    onViewableItemsChanged={onViewableItemsChanged}
+                    viewabilityConfig={VIEWABILITY_CONFIG}
+                    extraData={quranScript}
+                />
             </View>
 
-            {/* ── Bottom nav ── */}
+            {/* ── Bottom bar ── */}
             <View style={styles.bottomBar}>
-                <Pressable
-                    style={[styles.navBtn, currentPage <= 1 && styles.navBtnDisabled]}
-                    onPress={goToPrevPage}
-                    disabled={currentPage <= 1}
-                >
-                    <MaterialCommunityIcons name="chevron-left" size={28} color={currentPage > 1 ? '#1F2937' : '#D1D5DB'} />
-                    <Text style={[styles.navText, currentPage <= 1 && styles.navTextDisabled]}>Previous</Text>
-                </Pressable>
+                <View style={styles.bottomInner}>
+                    <Text style={styles.bottomScript}>{scriptLabel} Script</Text>
 
-                <View style={styles.pageIndicator}>
-                    <Text style={styles.pageNumber}>{currentPage}</Text>
+                    <View style={styles.pageIndicator}>
+                        <Text style={styles.pageNumber}>{currentPage}</Text>
+                    </View>
+
+                    <Text style={styles.bottomTotal}>{TOTAL_PAGES} Pages</Text>
                 </View>
-
-                <Pressable
-                    style={[styles.navBtn, currentPage >= 604 && styles.navBtnDisabled]}
-                    onPress={goToNextPage}
-                    disabled={currentPage >= 604}
-                >
-                    <Text style={[styles.navText, currentPage >= 604 && styles.navTextDisabled]}>Next</Text>
-                    <MaterialCommunityIcons name="chevron-right" size={28} color={currentPage < 604 ? '#1F2937' : '#D1D5DB'} />
-                </Pressable>
             </View>
         </View>
     );
@@ -266,6 +175,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FBF8F1',
     },
 
+    /* ── Top bar ── */
     topBar: {
         paddingTop: 52,
         paddingBottom: 10,
@@ -277,14 +187,16 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: '#EBEEF1',
     },
-    backBtn: {
-        width: 34,
-        height: 34,
+    iconBtn: {
+        width: 38,
+        height: 38,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 12,
     },
     topCenter: {
         alignItems: 'center',
+        flex: 1,
     },
     topTitle: {
         fontSize: 18,
@@ -298,31 +210,17 @@ const styles = StyleSheet.create({
         marginTop: 1,
     },
 
-    pageContainer: {
+    /* ── Page list ── */
+    listContainer: {
         flex: 1,
     },
-    loadingOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-        backgroundColor: 'rgba(251,248,241,0.9)',
-    },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 14,
-        color: '#6B7280',
-        fontWeight: '500',
-    },
-    webView: {
+    pageImage: {
         flex: 1,
-        backgroundColor: '#FBF8F1',
+        width: '100%',
     },
 
+    /* ── Bottom bar ── */
     bottomBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: SPACING.md,
         paddingVertical: 12,
         paddingBottom: 36,
@@ -330,24 +228,20 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderColor: '#EBEEF1',
     },
-    navBtn: {
+    bottomInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: RADIUS.lg,
+        justifyContent: 'space-between',
     },
-    navBtnDisabled: {
-        opacity: 0.4,
+    bottomScript: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
     },
-    navText: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#1F2937',
-    },
-    navTextDisabled: {
-        color: '#D1D5DB',
+    bottomTotal: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
     },
     pageIndicator: {
         width: 50,

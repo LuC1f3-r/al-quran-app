@@ -57,9 +57,14 @@ const PRAYER_KEYS: Array<{ key: keyof PrayerTimings; name: string }> = [
 /**
  * Cancel all existing scheduled notifications, then schedule
  * one notification for each of the 5 prayer times.
+ *
+ * @param timings        The raw prayer timings object (Fajr, Dhuhr, …).
+ * @param adhanEnabled   Per-prayer map – `{ fajr: true, dhuhr: false, … }`.
+ *                       When omitted every prayer is assumed enabled.
  */
 export async function schedulePrayerNotifications(
     timings: PrayerTimings,
+    adhanEnabled?: Record<string, boolean>,
 ): Promise<void> {
     if (!Notifications) return;
 
@@ -89,11 +94,16 @@ export async function schedulePrayerNotifications(
                 triggerDate.setDate(triggerDate.getDate() + 1);
             }
 
+            // Determine the lowercase prayer ID used by the store
+            const prayerId = prayer.key.toLowerCase();
+            const isAdhanEnabled = adhanEnabled ? adhanEnabled[prayerId] !== false : true;
+
             await Notifications.scheduleNotificationAsync({
                 content: {
                     title: `🕌 ${prayer.name} Prayer`,
                     body: `It's time for ${prayer.name} prayer (${timeStr})`,
                     sound: true,
+                    data: { prayerId, adhanEnabled: isAdhanEnabled },
                 },
                 trigger: {
                     type: Notifications.SchedulableTriggerInputTypes.DATE,
