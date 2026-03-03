@@ -11,7 +11,6 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import { Magnetometer } from 'expo-sensors';
 
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { calculateQiblaBearing, bearingToCardinal } from '../utils/qibla';
@@ -45,7 +44,7 @@ export default function QiblaCompassScreen() {
     const animatedHeading = useRef(new Animated.Value(0)).current;
     const lastHeading = useRef(0);
 
-    /* ── Get location & calculate Qibla bearing ── */
+    /* ── Get location & fetch Qibla bearing from AlAdhan API ── */
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -60,7 +59,20 @@ export default function QiblaCompassScreen() {
                 const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
                 if (cancelled) return;
 
-                const bearing = calculateQiblaBearing(loc.coords.latitude, loc.coords.longitude);
+                // Fetch Qibla direction from AlAdhan API
+                let bearing: number;
+                try {
+                    const res = await fetch(
+                        `https://api.aladhan.com/v1/qibla/${loc.coords.latitude}/${loc.coords.longitude}`
+                    );
+                    const json = await res.json();
+                    bearing = json.data.direction;
+                } catch {
+                    // Fallback to local calculation if API fails
+                    bearing = calculateQiblaBearing(loc.coords.latitude, loc.coords.longitude);
+                }
+
+                if (cancelled) return;
                 setQiblaBearing(bearing);
 
                 const addresses = await Location.reverseGeocodeAsync({
@@ -80,30 +92,40 @@ export default function QiblaCompassScreen() {
         return () => { cancelled = true; };
     }, []);
 
-    /* ── Subscribe to magnetometer ── */
+    /* ── Subscribe to compass heading ── */
     useEffect(() => {
-        Magnetometer.setUpdateInterval(100);
-        const sub = Magnetometer.addListener((data) => {
-            const { x, y } = data;
-            let angle = Math.atan2(y, x) * (180 / Math.PI);
-            angle = normalise(90 - angle);
-            setHeading(angle);
+        let sub: Location.LocationSubscription | null = null;
+        let smoothed = lastHeading.current;
 
-            let diff = angle - lastHeading.current;
-            if (diff > 180) diff -= 360;
-            if (diff < -180) diff += 360;
-            const newTarget = lastHeading.current + diff;
-            lastHeading.current = newTarget;
+        (async () => {
+            sub = await Location.watchHeadingAsync((headingData) => {
+                const raw = headingData.trueHeading >= 0
+                    ? headingData.trueHeading
+                    : headingData.magHeading;
 
-            Animated.timing(animatedHeading, {
-                toValue: newTarget,
-                duration: 150,
-                easing: Easing.out(Easing.quad),
-                useNativeDriver: true,
-            }).start();
-        });
+                // Low-pass filter for smoother updates
+                let diff = raw - smoothed;
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                smoothed = normalise(smoothed + diff * 0.3);
+                setHeading(smoothed);
 
-        return () => sub.remove();
+                let animDiff = smoothed - lastHeading.current;
+                if (animDiff > 180) animDiff -= 360;
+                if (animDiff < -180) animDiff += 360;
+                const newTarget = lastHeading.current + animDiff;
+                lastHeading.current = newTarget;
+
+                Animated.timing(animatedHeading, {
+                    toValue: newTarget,
+                    duration: 300,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: true,
+                }).start();
+            });
+        })();
+
+        return () => { sub?.remove(); };
     }, []);
 
     /* ── Derived values ── */
@@ -293,8 +315,8 @@ export default function QiblaCompassScreen() {
                             <MaterialCommunityIcons name="mosque" size={22} color="#fff" />
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
-                            <Text style={styles.kaabaTitle}>Masjid al-Haram</Text>
-                            <Text style={styles.kaabaSubtitle}>Makkah, Saudi Arabia</Text>
+                            <Text style={styles.kaabaTitle}>Makkah</Text>
+                            <Text style={styles.kaabaSubtitle}>Saudi Arabia</Text>
                         </View>
                         <View style={styles.distanceBadge}>
                             <MaterialCommunityIcons name="map-marker-distance" size={14} color="#1D8655" />

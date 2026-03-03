@@ -37,26 +37,22 @@ export default function RootLayout() {
     }
   }, [showSplash, fontsLoaded, hasCompletedOnboarding]);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0F7B3F', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
       <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: COLORS.background },
-          }}
-        />
-        {/* Only show MiniPlayer when not in onboarding */}
-        {hasCompletedOnboarding && <MiniPlayer />}
+        {fontsLoaded && (
+          <>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: COLORS.background },
+              }}
+            />
+            {/* Only show MiniPlayer when not in onboarding */}
+            {hasCompletedOnboarding && <MiniPlayer />}
+          </>
+        )}
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </View>
     </SafeAreaProvider>

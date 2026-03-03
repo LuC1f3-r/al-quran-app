@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -10,7 +11,7 @@ import { PRAYER_TIMES } from '../data/prayers';
 import { formatCountdown, getNextPrayer, getTimeOfDayTheme, toDisplayTime } from '../utils/prayer';
 import { useAppStore } from '../store/useAppStore';
 import { fetchPrayerTimesByCoords, timingsToList, type PrayerTimesResponse } from '../services/prayerApi';
-import { PRAYER_GIFS, getCurrentPrayerGif } from '../utils/prayerAssets';
+import { getCurrentPrayerVideo } from '../utils/prayerAssets';
 import { schedulePrayerNotifications } from '../services/notifications';
 
 /* ------------------------------------------------------------------ */
@@ -119,11 +120,13 @@ export default function HomeScreen() {
         onPress={() => router.push('/prayer-times')}
         style={[styles.heroArea, { backgroundColor: theme.heroBackground }]}
       >
-        <Image
-          source={getCurrentPrayerGif(now)}
+        <Video
+          source={getCurrentPrayerVideo(now)}
           style={{ position: 'absolute', top: 0, left: 0, width: '120%', height: '130%' }}
-          resizeMode="cover"
-          fadeDuration={0}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isLooping
+          isMuted
         />
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
 

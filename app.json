@@ -4,11 +4,13 @@
     "slug": "al-quran-prototype",
     "scheme": "alquranprototype",
     "version": "0.1.0",
+    "icon": "./assets/img/book.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-asset"
     ],
     "android": {
       "package": "com.prototype.alquran"

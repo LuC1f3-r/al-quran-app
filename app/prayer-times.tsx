@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -10,7 +11,7 @@ import { PRAYER_TIMES } from '../data/prayers';
 import { useAppStore } from '../store/useAppStore';
 import { getCurrentPrayerId, toDisplayTime } from '../utils/prayer';
 import { fetchPrayerTimesByCoords, timingsToList, type PrayerTimesResponse } from '../services/prayerApi';
-import { PRAYER_GIFS, getCurrentPrayerGif } from '../utils/prayerAssets';
+import { getCurrentPrayerVideo } from '../utils/prayerAssets';
 import { playAdhan, stopAdhan, subscribeAdhan } from '../services/adhanPlayer';
 import { schedulePrayerNotifications, cancelPrayerNotifications } from '../services/notifications';
 
@@ -127,11 +128,13 @@ export default function PrayerTimesScreen() {
     <View style={styles.container}>
       {/* ── GIF Header Area ── */}
       <View style={styles.headerHeroArea}>
-        <Image
-          source={getCurrentPrayerGif(new Date())}
+        <Video
+          source={getCurrentPrayerVideo(new Date())}
           style={{ position: 'absolute', top: 0, left: 0, width: '120%', height: '135%' }}
-          resizeMode="cover"
-          fadeDuration={0}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isLooping
+          isMuted
         />
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
 
