@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,6 +17,7 @@ import { TopHeader } from '../components/TopHeader';
 import { PillButton } from '../components/PillButton';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { SURAHS } from '../data/surahs';
+import { useSubscriptionStore, isReciterLocked } from '../store/useSubscriptionStore';
 import { useAppStore } from '../store/useAppStore';
 import { fetchChapters, RECITERS, type Chapter } from '../services/quranApi';
 import { useApiData } from '../hooks/useApiData';
@@ -25,6 +28,7 @@ export default function SurahIndexScreen() {
   const reciter = useAppStore((state) => state.settings.reciter);
   const setReciter = useAppStore((state) => state.setReciter);
   const playTrack = useAppStore((state) => state.playTrack);
+  const subPlan = useSubscriptionStore((s) => s.plan);
   const [reciterModalVisible, setReciterModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const quranScript = useAppStore((state) => state.settings.quranScript);
@@ -160,22 +164,80 @@ export default function SurahIndexScreen() {
 
       <Modal transparent visible={reciterModalVisible} onRequestClose={() => setReciterModalVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setReciterModalVisible(false)}>
-          <View style={styles.modalCard}>
+          <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
             <Text style={styles.modalTitle}>Choose Reciter</Text>
-            {RECITERS.map((r) => (
-              <Pressable
-                key={r.id}
-                style={[styles.reciterOption, r.name === reciter && styles.reciterOptionActive]}
-                onPress={() => {
-                  setReciter(r.name);
-                  setReciterModalVisible(false);
-                }}
-              >
-                <Text style={[styles.reciterOptionText, r.name === reciter && styles.reciterOptionTextActive]}>
-                  {r.name}
-                </Text>
-              </Pressable>
-            ))}
+            <Text style={styles.modalHint}>{RECITERS.length} reciters available</Text>
+            <ScrollView
+              style={styles.reciterScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              {RECITERS.map((r, idx) => {
+                const isActive = r.name === reciter;
+                const locked = isReciterLocked(r.id, subPlan);
+                const initials = r.name
+                  .replace(/\(.*\)/g, '')
+                  .trim()
+                  .split(/[\s-]+/)
+                  .filter((w) => w.length > 0)
+                  .slice(0, 2)
+                  .map((w) => w[0].toUpperCase())
+                  .join('');
+                const hue = (idx * 37) % 360;
+                const avatarBg = locked
+                  ? '#D1D5DB'
+                  : `hsl(${hue}, 55%, ${isActive ? '40%' : '65%'})`;
+                const quality = r.folder.match(/(\d+)kbps/)?.[1] ?? '';
+
+                return (
+                  <Pressable
+                    key={r.id}
+                    style={[styles.reciterRow, isActive && styles.reciterRowActive, locked && { opacity: 0.6 }]}
+                    onPress={() => {
+                      if (locked) {
+                        Alert.alert(
+                          'Premium Reciter 🔒',
+                          `${r.name} is available on the Premium plan.`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Upgrade', onPress: () => { setReciterModalVisible(false); router.push('/subscription'); } },
+                          ],
+                        );
+                        return;
+                      }
+                      setReciter(r.name);
+                      setReciterModalVisible(false);
+                    }}
+                  >
+                    <View style={[styles.reciterAvatar2, { backgroundColor: avatarBg }]}>
+                      {locked ? (
+                        <MaterialCommunityIcons name="lock" size={18} color="#fff" />
+                      ) : (
+                        <Text style={styles.reciterInitials}>{initials}</Text>
+                      )}
+                    </View>
+                    <View style={styles.reciterInfo}>
+                      <Text
+                        style={[styles.reciterName, isActive && styles.reciterNameActive]}
+                        numberOfLines={1}
+                      >
+                        {r.name}
+                      </Text>
+                      {locked ? (
+                        <Text style={[styles.reciterQuality, { color: '#F59E0B' }]}>Premium</Text>
+                      ) : quality ? (
+                        <Text style={styles.reciterQuality}>{quality} kbps</Text>
+                      ) : null}
+                    </View>
+                    {isActive && !locked && (
+                      <MaterialCommunityIcons name="check-circle" size={22} color="#22C55E" />
+                    )}
+                    {locked && (
+                      <MaterialCommunityIcons name="lock-outline" size={20} color="#9CA3AF" />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>
@@ -294,29 +356,63 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.xl,
     padding: SPACING.lg,
-    gap: SPACING.sm,
+    maxHeight: '80%',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 4,
   },
-  reciterOption: {
+  modalHint: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginBottom: 8,
+  },
+  reciterScroll: {
+    maxHeight: 480,
+  },
+  reciterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 12,
-    backgroundColor: '#F3F4F6',
+    gap: 12,
+    marginBottom: 6,
+    backgroundColor: '#F9FAFB',
   },
-  reciterOptionActive: {
-    backgroundColor: '#E7F5E8',
+  reciterRowActive: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#22C55E',
   },
-  reciterOptionText: {
-    color: COLORS.textPrimary,
-    fontWeight: '600',
+  reciterAvatar2: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reciterInitials: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  reciterInfo: {
+    flex: 1,
+  },
+  reciterName: {
     fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
   },
-  reciterOptionTextActive: {
-    color: COLORS.primaryGreenSoft,
+  reciterNameActive: {
+    color: '#065F46',
+    fontWeight: '700',
+  },
+  reciterQuality: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 1,
   },
 });

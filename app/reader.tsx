@@ -246,7 +246,7 @@ export default function ReaderScreen() {
         style={styles.bottomPlayer}
         onPress={() =>
           router.push(
-            `/now-playing?surahNumber=${surahNumber}&surahName=${surahName}&surahNameArabic=${encodeURIComponent(chapterMeta?.nameArabic ?? '')}&totalVerses=${chapterMeta?.versesCount ?? 7}`,
+            `/now-playing?surahNumber=${surahNumber}&surahName=${surahName}&surahNameArabic=${encodeURIComponent(chapterMeta?.nameArabic ?? '')}&translatedName=${encodeURIComponent(chapterMeta?.translatedName ?? '')}&totalVerses=${chapterMeta?.versesCount ?? 7}`,
           )
         }
       >

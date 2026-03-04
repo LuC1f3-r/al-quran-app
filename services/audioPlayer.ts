@@ -125,6 +125,7 @@ export async function toggleAudio(): Promise<void> {
 
 /** Stop and unload */
 export async function stopAudio(): Promise<void> {
+    surahCancelled = true; // cancel any running surah loop
     if (sound) {
         try {
             await sound.stopAsync();
@@ -138,30 +139,51 @@ export async function stopAudio(): Promise<void> {
     notifyListeners();
 }
 
-/** Play entire surah sequentially */
+/** Play entire surah sequentially — survives background */
+let surahCancelled = false;
+
 export async function playSurah(
     surahNumber: number,
     totalAyahs: number,
     reciterName: string,
     startAyah = 1,
 ): Promise<void> {
+    // Cancel any previous surah loop
+    surahCancelled = true;
+    if (sound) {
+        try { await sound.stopAsync(); await sound.unloadAsync(); } catch { /* noop */ }
+        sound = null;
+    }
+
+    surahCancelled = false;
     const folder = resolveFolder(reciterName);
 
+    // Set audio mode once for the whole surah
+    await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+    });
+
     for (let ayah = startAyah; ayah <= totalAyahs; ayah++) {
-        if (!state.isPlaying && ayah > startAyah) break; // user stopped
+        if (surahCancelled) return;
 
         const url = getAyahAudioUrl(surahNumber, ayah, folder);
-        await stopAudio();
 
-        await Audio.setAudioModeAsync({
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-        });
+        // Unload previous sound without resetting state
+        if (sound) {
+            try { await sound.stopAsync(); await sound.unloadAsync(); } catch { /* noop */ }
+            sound = null;
+        }
 
         const { sound: newSound } = await Audio.Sound.createAsync(
             { uri: url },
             { shouldPlay: true },
         );
+
+        if (surahCancelled) {
+            try { await newSound.unloadAsync(); } catch { /* noop */ }
+            return;
+        }
 
         sound = newSound;
         state = {
@@ -174,12 +196,17 @@ export async function playSurah(
         };
         notifyListeners();
 
-        // Wait for playback to finish
+        // Wait for this ayah to finish playing
         await new Promise<void>((resolve) => {
             newSound.setOnPlaybackStatusUpdate((status) => {
+                if (surahCancelled) {
+                    resolve();
+                    return;
+                }
                 if (status.isLoaded) {
                     state.durationMs = status.durationMillis ?? 0;
                     state.positionMs = status.positionMillis ?? 0;
+                    state.isPlaying = status.isPlaying;
                     notifyListeners();
 
                     if (status.didJustFinish) {
@@ -190,6 +217,10 @@ export async function playSurah(
         });
     }
 
-    state.isPlaying = false;
-    notifyListeners();
+    // Surah finished naturally
+    if (!surahCancelled) {
+        state.isPlaying = false;
+        notifyListeners();
+    }
 }
+

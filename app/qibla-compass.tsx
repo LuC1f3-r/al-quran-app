@@ -103,13 +103,15 @@ export default function QiblaCompassScreen() {
                     ? headingData.trueHeading
                     : headingData.magHeading;
 
-                // Low-pass filter for smoother updates
+                // Low-pass filter — 0.5 is snappy yet stable
                 let diff = raw - smoothed;
                 if (diff > 180) diff -= 360;
                 if (diff < -180) diff += 360;
-                smoothed = normalise(smoothed + diff * 0.3);
+                smoothed = normalise(smoothed + diff * 0.5);
                 setHeading(smoothed);
 
+                // Accumulate shortest-path delta for the Animated value
+                // so we never jump at the 0°/360° boundary.
                 let animDiff = smoothed - lastHeading.current;
                 if (animDiff > 180) animDiff -= 360;
                 if (animDiff < -180) animDiff += 360;
@@ -117,9 +119,9 @@ export default function QiblaCompassScreen() {
                 lastHeading.current = newTarget;
 
                 Animated.timing(animatedHeading, {
-                    toValue: newTarget,
-                    duration: 300,
-                    easing: Easing.out(Easing.cubic),
+                    toValue: -newTarget,  // NEGATE: dial rotates opposite to heading
+                    duration: 150,        // shorter = snappier
+                    easing: Easing.out(Easing.quad),
                     useNativeDriver: true,
                 }).start();
             });
@@ -130,8 +132,8 @@ export default function QiblaCompassScreen() {
 
     /* ── Derived values ── */
     const compassRotation = animatedHeading.interpolate({
-        inputRange: [-360, 0, 360],
-        outputRange: ['360deg', '0deg', '-360deg'],
+        inputRange: [-3600, 0, 3600],
+        outputRange: ['-3600deg', '0deg', '3600deg'],
     });
 
     const qiblaRelative = qiblaBearing != null ? normalise(qiblaBearing - heading) : null;

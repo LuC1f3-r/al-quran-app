@@ -148,6 +148,23 @@ export default function ProfileScreen() {
                     <MaterialCommunityIcons name="school" size={52} color="#1D7F53" style={{ opacity: 0.25 }} />
                 </View>
 
+                {/* ── My Plans ── */}
+                <Pressable
+                    style={styles.promoBanner}
+                    onPress={() => router.push('/subscription')}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
+                            <MaterialCommunityIcons name="crown-outline" size={22} color="#1D8655" />
+                        </View>
+                        <View>
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }}>My Plans</Text>
+                            <Text style={{ fontSize: 12, color: '#6B7280' }}>Manage your subscription</Text>
+                        </View>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+                </Pressable>
+
                 {/* ── GENERAL ── */}
                 <Text style={styles.sectionLabel}>GENERAL</Text>
                 <View style={styles.card}>
